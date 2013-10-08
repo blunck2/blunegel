@@ -22,11 +22,16 @@ Infrastructure Notes
  `./webapp.d start`
 
 3. Start MongoDB
-    * As chris, `cd ~/mongodb-linux-x86_64-2.4.5/bin`
-    * `./mongod --dbpath=/mnt/static/db/mongo`
-4. Start the MongoDB monitoring agent
+    * `cd /path/to/mongodb/bin`
+    * `./mongod --dbpath ~/exclude/mongo/system/db --port 27017 --logpath ~/exclude/mongo/system/log/mongo.log --fork`
+    * `./mongod --dbpath ~/exclude/mongo/data/db --port 27018 --logpath ~/exclude/mongo/data/log/mongo.log --fork`
+4. Optionall start the MongoDB monitoring agent
     * As chris, `cd ~/mms-agent`
     * `nohup ./agent.py > nohup.log 2>&1 &`
-5.  Start the ruby rest server on aiur
+5.  Start the ruby rest server
+    * `sudo gem install sinatra`
+    * `sudo gem install json`
+    * `sudo gem install mongo`
+    * `sudo gem install bson_ext`
     * `cd ~/blunegel/observer`
     * `nohup ./rest_server.rb > nohup.out 2>&1 &`
