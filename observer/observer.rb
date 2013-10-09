@@ -5,6 +5,7 @@ require 'sinatra'
 require 'json'
 require 'mongo'
 require 'pp'
+require 'date'
 
 include Mongo
 
@@ -38,10 +39,10 @@ puts "  * 1 hour granularity:   #{hour_level_age_off_in_days} days"
 puts "  * 1 day granularity:    #{day_level_age_off_in_days} days"
 
 post '/rs/ingest' do
-  #mongo_system.remove
-  #mongo_data_minute.remove
-  #mongo_data_hour.remove
-  #mongo_data_day.remove
+  #$mongo_system.remove
+  #$mongo_data_minute.remove
+  #$mongo_data_hour.remove
+  #$mongo_data_day.remove
 
   start = Time.now
 
@@ -82,7 +83,7 @@ end
 def insert_data(record)
   insert_minute(record)
   insert_hour(record)
-  #insert_day(record)
+  insert_day(record)
 end
 
 def insert_minute(record)
@@ -136,16 +137,14 @@ def insert_minute(record)
     current_minute = sprintf '%02d', minute
     doc['v'][current_minute] = value
     
-    puts "minute insert: #{y}-#{m}-#{d} #{hr}:#{current_minute} => #{value}"
+    #puts "minute insert: #{y}-#{m}-#{d} #{hr}:#{current_minute} => #{value}"
     $mongo_data_minute.insert(doc)
   else
-    puts "minute update: #{y}-#{m}-#{d} #{hr}:#{minute} => #{value}"
-    e['v'][minute.to_s] = value
+    #puts "minute update: #{y}-#{m}-#{d} #{hr}:#{minute} => #{value}"
+    min = sprintf "%02d", minute
+    e['v'][min] = value
     $mongo_data_minute.update(key, e)
   end
-  
-  #mongo_data.insert(data)
-
 end
 
 def insert_hour(record)
@@ -191,50 +190,112 @@ def insert_hour(record)
     doc['v'] = {}
     for hour in 0..23
       pretty_hour = sprintf '%02d', hour
-      doc['v'][pretty_hour] = "NaN".to_f
       doc['v'][pretty_hour + "t"] = "NaN".to_f
-      doc['v'][pretty_hour + "v"] = "NaN".to_f
+      doc['v'][pretty_hour + "c"] = "NaN".to_f
       doc['v'][pretty_hour + "a"] = "NaN".to_f
       doc['v'][pretty_hour + "z"] = "NaN".to_f
     end
     
-    current_day = sprintf '%03d', doy
-    doc['v'][current_day + "t"] = 0
-    doc['v'][current_day + "v"] = value
-    doc['v'][current_day + "a"] = value
-    doc['v'][current_day + "z"] = value
+    current_hour = sprintf '%02d', hr
+    doc['v'][current_hour + "t"] = value
+    doc['v'][current_hour + "c"] = 1
+    doc['v'][current_hour + "a"] = value
+    doc['v'][current_hour + "z"] = value
     
-    puts "hour insert: #{y}-#{m} #{hr} => #{value}"
+    #puts "hour insert: #{y}-#{m} #{hr} => #{value}"
     $mongo_data_hour.insert(doc)
   else
-    puts "#{y}"
-    puts "#{m}"
-    puts "#{d}"
-    puts "#{hr}"
-    puts "#{value}"
-
-    puts "hour update: #{y}-#{m}-#{d} #{hr}: => #{value}"
+    #puts "hour update: #{y}-#{m}-#{d} #{hr}: => #{value}"
     hr = sprintf '%02d', hr
-    PP.pp(e)
+    #PP.pp(e)
     if value < e["v"][hr + "a"]
-      e[hr + "a"] = value
+      e["v"][hr + "a"] = value
     end
     if value > e["v"][hr + "z"]
-      e[hr + "z"] = value
+      e["v"][hr + "z"] = value
     end
 
-    if e["v"][hr + "c"] == nil
-      e["v"][hr + "c"] = value
-    else
-      e["v"][hr + "c"] =  e["v"][hr + "c"] + 1
-      e["v"][hr + "t"] =  e["v"][hr + "t"] + value
-    end
+    e["v"][hr + "c"] =  e["v"][hr + "c"] + 1
+    e["v"][hr + "t"] =  e["v"][hr + "t"] + value
 
     $mongo_data_hour.update(key, e)
   end
-  
-  #mongo_data.insert(data)
-
 end
 
+
+def insert_day(record)
+  r = record.clone
+  raw = r["timestamp"]
+  value = r['value']
+
+  n = r['network']
+  h = r['host']
+  o = r['observer']
+  k = r['key']
+  v = r['value']
+
+  ts = Time.at(r['timestamp'])
+  y = ts.year
+  m = ts.month
+  d = ts.day       # day of the month
+  hr = ts.hour     # hour of the day
+  doy = ts.yday()  # day of the year
+  dow = ts.wday()  # day of the week
+  woy = ts.strftime('%U') # week of the year
+
+  key = { 
+    'n' => n,
+    'h' => h,
+    'o' => o,
+    'k' => k,
+    'y' => y,
+    'm' => m,
+  }
+
+
+  #puts "looking for: (n=#{n}, h=#{h}, o=#{o}, k=#{k}, y=#{y})"
+
+  cursor = $mongo_data_day.find(key, opts = {:limit => 1})
+  e = cursor.first()
+  if e.nil?
+    doc = key.clone
+    
+    doc['v'] = {}
+    for day in 1..days_in_month(y, m)
+      pretty_day = sprintf '%02d', day
+      doc['v'][pretty_day + "t"] = "NaN".to_f
+      doc['v'][pretty_day + "c"] = "NaN".to_f
+      doc['v'][pretty_day + "a"] = "NaN".to_f
+      doc['v'][pretty_day + "z"] = "NaN".to_f
+    end
+    
+    current_day = sprintf '%02d', d
+    doc['v'][current_day + "t"] = value
+    doc['v'][current_day + "c"] = 1
+    doc['v'][current_day + "a"] = value
+    doc['v'][current_day + "z"] = value
+    
+    #puts "day insert: #{y}-#{m}-#{current_day} => #{value}"
+    $mongo_data_day.insert(doc)
+  else
+    #puts "day update: #{y}-#{m}-#{doy}: => #{value}"
+    dom = sprintf '%02d', d
+    #PP.pp(e)
+    if value < e["v"][dom + "a"]
+      e["v"][dom + "a"] = value
+    end
+    if value > e["v"][dom + "z"]
+      e["v"][dom + "z"] = value
+    end
+
+    e["v"][dom + "c"] =  e["v"][dom + "c"] + 1
+    e["v"][dom + "t"] =  e["v"][dom + "t"] + value
+
+    $mongo_data_day.update(key, e)
+  end
+end
+
+def days_in_month(year, month)
+  (Date.new(year, 12, 31) << (12-month)).day
+end
 
