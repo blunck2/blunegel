@@ -131,7 +131,7 @@ def insert_minute(record)
     doc['v'] = {}
     for minute in 0..59
       pretty_min = sprintf '%02d', minute
-      doc['v'][pretty_min] = "NaN".to_f
+      doc['v'][pretty_min] = 0.0 / 0.0
     end
     
     current_minute = sprintf '%02d', minute
@@ -190,10 +190,10 @@ def insert_hour(record)
     doc['v'] = {}
     for hour in 0..23
       pretty_hour = sprintf '%02d', hour
-      doc['v'][pretty_hour + "t"] = "NaN".to_f
-      doc['v'][pretty_hour + "c"] = "NaN".to_f
-      doc['v'][pretty_hour + "a"] = "NaN".to_f
-      doc['v'][pretty_hour + "z"] = "NaN".to_f
+      doc['v'][pretty_hour + "t"] = 0.0 / 0.0
+      doc['v'][pretty_hour + "c"] = 0.0 / 0.0
+      doc['v'][pretty_hour + "a"] = 0.0 / 0.0
+      doc['v'][pretty_hour + "z"] = 0.0 / 0.0
     end
     
     current_hour = sprintf '%02d', hr
@@ -263,10 +263,10 @@ def insert_day(record)
     doc['v'] = {}
     for day in 1..days_in_month(y, m)
       pretty_day = sprintf '%02d', day
-      doc['v'][pretty_day + "t"] = "NaN".to_f
-      doc['v'][pretty_day + "c"] = "NaN".to_f
-      doc['v'][pretty_day + "a"] = "NaN".to_f
-      doc['v'][pretty_day + "z"] = "NaN".to_f
+      doc['v'][pretty_day + "t"] = 0.0 / 0.0
+      doc['v'][pretty_day + "c"] = 0.0 / 0.0
+      doc['v'][pretty_day + "a"] = 0.0 / 0.0
+      doc['v'][pretty_day + "z"] = 0.0 / 0.0
     end
     
     current_day = sprintf '%02d', d
