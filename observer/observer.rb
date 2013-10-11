@@ -190,10 +190,10 @@ def insert_hour(record)
     doc['v'] = {}
     for hour in 0..23
       pretty_hour = sprintf '%02d', hour
-      doc['v'][pretty_hour + "t"] = 0.0 / 0.0
-      doc['v'][pretty_hour + "c"] = 0.0 / 0.0
-      doc['v'][pretty_hour + "a"] = 0.0 / 0.0
-      doc['v'][pretty_hour + "z"] = 0.0 / 0.0
+      doc['v'][pretty_hour + "t"] = 0.0
+      doc['v'][pretty_hour + "c"] = 0.0
+      doc['v'][pretty_hour + "a"] = 0.0
+      doc['v'][pretty_hour + "z"] = 0.0
     end
     
     current_hour = sprintf '%02d', hr
@@ -202,10 +202,10 @@ def insert_hour(record)
     doc['v'][current_hour + "a"] = value
     doc['v'][current_hour + "z"] = value
     
-    #puts "hour insert: #{y}-#{m} #{hr} => #{value}"
+    #puts "hour insert: #{y}-#{m} #{hr} #{h}:/#{k} => #{value}"
     $mongo_data_hour.insert(doc)
   else
-    #puts "hour update: #{y}-#{m}-#{d} #{hr}: => #{value}"
+    #puts "hour update: #{y}-#{m}-#{d} #{hr} #{h}:/#{k} => #{value}"
     hr = sprintf '%02d', hr
     #PP.pp(e)
     if value < e["v"][hr + "a"]
@@ -263,10 +263,10 @@ def insert_day(record)
     doc['v'] = {}
     for day in 1..days_in_month(y, m)
       pretty_day = sprintf '%02d', day
-      doc['v'][pretty_day + "t"] = 0.0 / 0.0
-      doc['v'][pretty_day + "c"] = 0.0 / 0.0
-      doc['v'][pretty_day + "a"] = 0.0 / 0.0
-      doc['v'][pretty_day + "z"] = 0.0 / 0.0
+      doc['v'][pretty_day + "t"] = 0.0
+      doc['v'][pretty_day + "c"] = 0.0
+      doc['v'][pretty_day + "a"] = 0.0
+      doc['v'][pretty_day + "z"] = 0.0
     end
     
     current_day = sprintf '%02d', d
@@ -275,10 +275,10 @@ def insert_day(record)
     doc['v'][current_day + "a"] = value
     doc['v'][current_day + "z"] = value
     
-    #puts "day insert: #{y}-#{m}-#{current_day} => #{value}"
+    #puts "day insert: #{y}-#{m}-#{d}  #{h}:/#{k} => #{value}"
     $mongo_data_day.insert(doc)
   else
-    #puts "day update: #{y}-#{m}-#{doy}: => #{value}"
+    #puts "day update: #{y}-#{m}-#{d}  #{h}:/#{k} => #{value}"
     dom = sprintf '%02d', d
     #PP.pp(e)
     if value < e["v"][dom + "a"]
@@ -291,6 +291,7 @@ def insert_day(record)
     e["v"][dom + "c"] =  e["v"][dom + "c"] + 1
     e["v"][dom + "t"] =  e["v"][dom + "t"] + value
 
+    #puts "updating with: #{e}"
     $mongo_data_day.update(key, e)
   end
 end
