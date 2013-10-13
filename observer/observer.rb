@@ -29,8 +29,11 @@ $mongo_data_hour = data_db['hour']
 $mongo_data_day = data_db['day']
 
 $mongo_data_minute.create_index([["b", 1]], :expireAfterSeconds => minute_level_age_off_in_days * 86400)
+$mongo_data_minute.create_index([["n", 1], ["h", 1], ["o", 1], ["k", 1], ["y", 1], ["m", 1], ["d", 1], ["hr", 1]])
 $mongo_data_hour.create_index([["b", 1]], :expireAfterSeconds => hour_level_age_off_in_days * 86400)
+$mongo_data_hour.create_index([["n", 1], ["h", 1], ["o", 1], ["k", 1], ["y", 1], ["m", 1], ["d", 1]])
 $mongo_data_day.create_index([["b", 1]], :expireAfterSeconds => day_level_age_off_in_days * 86400)
+$mongo_data_day.create_index([["n", 1], ["h", 1], ["o", 1], ["k", 1], ["y", 1], ["m", 1]])
 
 puts "connected to mongo."
 puts "data retention policy:"
