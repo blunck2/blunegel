@@ -1,38 +1,70 @@
 #!/usr/bin/env ruby
 
-require 'observer'
+require './observer'
+require 'pp'
+require './ingest'
 
-def create_metric(observer, key)
+
+def generate_metric(network, hostname, observer, key)
   ts = Time.now
-  y = ts.year
-  m = ts.month
-  d = ts.day       # day of the month
-  minute = ts.min  # minute of the day
-  hr = ts.hour     # hour of the day
-  doy = ts.yday()  # day of the year
-  dow = ts.wday()  # day of the week
-  woy = ts.strftime('%U') # week of the year
   
-  key = {
-    'n' => "localdomain",
-    'h' => "localhost",
-    'o' => "load_inducer",
-    'k' => "",
-    'y' => y,
-    'm' => m,
-    'd' => d,
-    'hr' => hr
+  metric = {
+    'network' => network,
+    'host' => hostname,
+    'observer' => observer,
+    'key' => key,
+    'timestamp' => ts.to_i,
+    'value' => rand(100)
   }
 
-  doc = key.clone
-  doc['dy'] = 100
-  doc['dw'] = 3
-  doc['wy'] = 37
-  doc['v'] = {}
-  
-  for minute in 0..59
-    pretty_min = sprintf '%02d', minute
-    doc['v'][pretty_min] = 0.0 / 0.0
+  return metric
+end
+
+def generate_observer(network, hostname, observer, key_count)
+  metrics = []
+  (0..key_count).each do |key_number|
+    key = 'key_' << "%02d" % key_number
+    metrics << generate_metric(network, hostname, observer, key)
   end
-  
-  current_minute = sprintf '%02d', minute
+
+  return metrics
+end
+
+def generate_host(network, hostname, observer_count, keys)
+  observers = []
+  (0..observer_count).each do |observer_number|
+    observer = 'observer_' << '%02d' % observer_number
+    observers.concat(generate_observer(network, hostname, observer, keys))
+  end
+
+  return observers
+end
+
+def generate_network(network, host_count, observers, keys)
+  hosts = []
+  (0..host_count).each do |host_number|
+    hostname = 'host_' << "%04d" % host_number
+    hosts.concat(generate_host(network, hostname, observers, keys))
+  end
+
+  return hosts
+end
+
+
+network = ARGV[0]
+hosts = ARGV[1].to_i
+observers = ARGV[2].to_i
+keys = ARGV[3].to_i
+
+puts "generating metrics for: #{network}"
+
+records = generate_network(network, hosts, observers, keys)
+PP.pp(records)
+
+
+puts "ingesting..."
+ingester = Ingester.new("load_test")
+ingester.ingest(records)
+puts "done."
+
+
