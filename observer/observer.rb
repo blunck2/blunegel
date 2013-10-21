@@ -12,43 +12,38 @@ include Mongo
 set :bind, '0.0.0.0'
 set :port, 9494
 
-minute_level_age_off_in_days = 30  # 1 month @ 1 minute granularity
-hour_level_age_off_in_days = 180   # 6 months @ 1 hour granularity
-day_level_age_off_in_days = 3650   # 10 years @ 1 day granularity
-
-# system db information
-system_client = MongoClient.new('localhost', 27017)
-system_db = system_client['application']
-$mongo_streams = system_db['streams']
-
-# data db information
-data_client = MongoClient.new('localhost', 27018)
-data_db = data_client['data']
-$mongo_data_minute = data_db['minute']
-$mongo_data_hour = data_db['hour']
-$mongo_data_day = data_db['day']
-
-$mongo_data_minute.create_index([["b", 1]], :expireAfterSeconds => minute_level_age_off_in_days * 86400)
-$mongo_data_minute.create_index([["n", 1], ["h", 1], ["o", 1], ["k", 1], ["y", 1], ["m", 1], ["d", 1], ["hr", 1]])
-$mongo_data_hour.create_index([["b", 1]], :expireAfterSeconds => hour_level_age_off_in_days * 86400)
-$mongo_data_hour.create_index([["n", 1], ["h", 1], ["o", 1], ["k", 1], ["y", 1], ["m", 1], ["d", 1]])
-$mongo_data_day.create_index([["b", 1]], :expireAfterSeconds => day_level_age_off_in_days * 86400)
-$mongo_data_day.create_index([["n", 1], ["h", 1], ["o", 1], ["k", 1], ["y", 1], ["m", 1]])
-
-puts "connected to mongo."
-puts "data retention policy:"
-puts "  * 1 minute granularity: #{minute_level_age_off_in_days} days"
-puts "  * 1 hour granularity:   #{hour_level_age_off_in_days} days"
-puts "  * 1 day granularity:    #{day_level_age_off_in_days} days"
 
 
 
 class Ingester
-  def initialize(mongo_streams, mongo_data_minute, mongo_data_hour, mongo_data_day)
-    @mongo_streams = mongo_streams
-    @mongo_data_minute = mongo_data_minute
-    @mongo_data_hour = mongo_data_hour
-    @mongo_data_day = mongo_data_day
+  def initialize(database)
+    @minute_level_age_off_in_days = 30  # 1 month @ 1 minute granularity
+    @hour_level_age_off_in_days = 180   # 6 months @ 1 hour granularity
+    @day_level_age_off_in_days = 3650   # 10 years @ 1 day granularity
+
+    system_client = MongoClient.new('localhost', 27017)
+    system_db = system_client[database]
+    @mongo_streams = system_db['streams']
+
+    # data db information
+    data_client = MongoClient.new('localhost', 27018)
+    data_db = data_client['data']
+    @mongo_data_minute = data_db['minute']
+    @mongo_data_hour = data_db['hour']
+    @mongo_data_day = data_db['day']
+
+    @mongo_data_minute.create_index([["b", 1]], :expireAfterSeconds => @minute_level_age_off_in_days * 86400)
+    @mongo_data_minute.create_index([["n", 1], ["h", 1], ["o", 1], ["k", 1], ["y", 1], ["m", 1], ["d", 1], ["hr", 1]])
+    @mongo_data_hour.create_index([["b", 1]], :expireAfterSeconds => @hour_level_age_off_in_days * 86400)
+    @mongo_data_hour.create_index([["n", 1], ["h", 1], ["o", 1], ["k", 1], ["y", 1], ["m", 1], ["d", 1]])
+    @mongo_data_day.create_index([["b", 1]], :expireAfterSeconds => @day_level_age_off_in_days * 86400)
+    @mongo_data_day.create_index([["n", 1], ["h", 1], ["o", 1], ["k", 1], ["y", 1], ["m", 1]])
+
+    puts "connected to mongo."
+    puts "data retention policy:"
+    puts "  * 1 minute granularity: @{minute_level_age_off_in_days} days"
+    puts "  * 1 hour granularity:   @{hour_level_age_off_in_days} days"
+    puts "  * 1 day granularity:    @{day_level_age_off_in_days} days"
   end
 
   def ingest(records)
@@ -307,11 +302,12 @@ class Ingester
   
 end
 
+ingester = Ingester.new("application")
+
 
 
 post '/rs/ingest' do
   records = JSON.parse(request.body.string)
-  ingester = Ingester.new($mongo_streams, $mongo_data_minute, $mongo_data_hour, $mongo_data_day)
   ingester.ingest(records)
 end
 
