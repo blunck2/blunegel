@@ -59,11 +59,11 @@ keys = ARGV[3].to_i
 puts "generating metrics for: #{network}"
 
 records = generate_network(network, hosts, observers, keys)
-PP.pp(records)
+#PP.pp(records)
 
 
 puts "ingesting..."
-ingester = Ingester.new("load_test")
+ingester = Ingester.new(Client.system(), Client.data(), "load_test")
 ingester.ingest(records)
 puts "done."
 

@@ -10,7 +10,7 @@ require './ingest'
 set :bind, '0.0.0.0'
 set :port, 9494
 
-ingester = Ingester.new("application")
+ingester = Ingester.new(Client.system(), Client.data())
 post '/rs/ingest' do
   records = JSON.parse(request.body.string)
   #PP.pp(records)

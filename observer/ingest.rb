@@ -4,22 +4,54 @@ require 'date'
 
 include Mongo
 
+
+DEFAULT_SYSTEM_HOSTNAME = "localhost"
+DEFAULT_SYSTEM_PORT = 27017
+DEFAULT_SYSTEM_DATABASE = "streams"
+
+DEFAULT_DATA_HOSTNAME = "localhost"
+DEFAULT_DATA_PORT = 27018
+DEFAULT_DATA_DATABASE = "measurements"
+
+
+class Client  
+  class << self
+    def system()
+      new(DEFAULT_SYSTEM_HOSTNAME, DEFAULT_SYSTEM_PORT, DEFAULT_SYSTEM_DATABASE)
+    end
+    def data()
+      new(DEFAULT_DATA_HOSTNAME, DEFAULT_DATA_PORT, DEFAULT_DATA_DATABASE)
+    end
+    
+    private :new
+  end
+  
+  def client
+    @client
+  end
+
+  def db
+    @db
+  end
+
+  def initialize(hostname, port, database)
+    @client = MongoClient.new(hostname, port)
+    @db = @client[database]
+  end
+
+end
+
+
 class Ingester
   MINUTE_LEVEL_AGE_OFF_IN_DAYS = 30  # 1 month @ 1 minute granularity
   HOUR_LEVEL_AGE_OFF_IN_DAYS = 180   # 6 months @ 1 hour granularity
   DAY_LEVEL_AGE_OFF_IN_DAYS = 3650   # 10 years @ 1 day granularity
 
-  def initialize(database)
-    system_client = MongoClient.new('localhost', 27017)
-    system_db = system_client[database]
-    @mongo_streams = system_db['streams']
-
-    # data db information
-    data_client = MongoClient.new('localhost', 27018)
-    data_db = data_client['data']
-    @mongo_data_minute = data_db['minute']
-    @mongo_data_hour = data_db['hour']
-    @mongo_data_day = data_db['day']
+  def initialize(streams, data)
+    @mongo_streams = streams.db['streams']
+    @mongo_data_minute = data.db['minute']
+    @mongo_data_hour = data.db['hour']
+    @mongo_data_day = data.db['day']
 
     @mongo_data_minute.create_index([["b", 1]], :expireAfterSeconds => MINUTE_LEVEL_AGE_OFF_IN_DAYS * 86400)
     @mongo_data_minute.create_index([["n", 1], ["h", 1], ["o", 1], ["k", 1], ["y", 1], ["m", 1], ["d", 1], ["hr", 1]])
